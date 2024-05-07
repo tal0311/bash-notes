@@ -8,6 +8,7 @@ prompt_for_note() {
         echo "No note was entered. Exiting."
         exit 1
     fi
+    log_activity "Note prompted with content: $note"
 }
 
 # Function to ask for labels and read them
@@ -20,6 +21,7 @@ prompt_for_labels() {
         read labels
         labels="$labels"
     fi
+    log_activity "Labels prompted with content: $labels"
 }
 
 # Function to append the note and labels to the file
@@ -30,6 +32,7 @@ write_note() {
     local status="In Progress"
     echo "ID: [$id] Date: ${current_date} | User: ${user} | Note: $note | Labels: $labels | Status: $status" >> notes.txt
     echo "Note added successfully."
+    log_activity "Note added successfully with ID: $id | note: $note | status: $status | labels: $labels"
 }
 
 # Function to display all notes
@@ -37,14 +40,16 @@ view_all_notes() {
     local color=${1:-34}
     echo "All notes:"
     while IFS= read -r line; do
+        id=$(echo "$line" | awk -F 'ID: ' '{print $2}' | awk -F ' Date:' '{print $1}')
         date=$(echo "$line" | awk -F 'Date: ' '{print $2}' | awk -F ' | User:' '{print $1}')
         note=$(echo "$line" | awk -F 'Note: ' '{print $2}' | awk -F ' | Labels:' '{print $1}')
         status=$(echo "$line" | awk -F 'Status: ' '{print $2}')
-        echo -e "\e[1;${color}mDate: $date | Note: $note | Status: $status\e[0m"
+        echo -e "\e[1;${color}m $id | $date | $note | $status\e[0m"
     done < notes.txt
     count_all_notes
 }
 
+# Function to count all notes
 count_all_notes() {
     echo "Total number of notes:"
     wc -l notes.txt | awk '{print $1}'
@@ -59,6 +64,7 @@ remove_note_by_id() {
     fi
     sed -i "/ID: \[$id\]/d" notes.txt
     echo "Note with ID $id removed successfully."
+    log_activity "Note with ID $id removed successfully"
 }
 
 # Function to update note status by ID
@@ -71,18 +77,18 @@ update_note_status() {
     fi
     sed -i "s/\(ID: \[$id\].*Status: \).*/\1$new_status/" notes.txt
     echo "Note with ID $id updated successfully."
+    log_activity "Note status with ID $id updated successfully"
 }
 
 # Function to count tasks per label
 count_tasks_per_label() {
     echo "Count of tasks per label:"
     awk -F 'Labels: ' '{print $2}' notes.txt | awk -F ' | Status:' '{print $1}' | tr -d '[]' | tr ',' '\n' | sort | uniq -c
+    log_activity "Counted tasks per label"
 }
 
 # Function to list notes by status
 list_notes_by_status() {
-    
-
     echo "List of notes by status:"
     echo -e "\e[1;33mIn Progress:\e[0m"
     grep "Status: In Progress" notes.txt 
@@ -93,7 +99,15 @@ list_notes_by_status() {
 
     echo "Summary:"
     awk -F 'Status: ' '{print $2}' notes.txt | sort | uniq -c
-    
+
+    log_activity "Listed notes by status" 
+}
+
+# Function to log user activity
+log_activity() {
+    local activity="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "[$timestamp] User activity: $activity" >> activity.log
 }
 
 # Main script logic based on command-line argument
@@ -114,6 +128,7 @@ case "$1" in
         ;;
     -l)
         view_all_notes "$2"
+       
         ;;
     -cn)
         count_all_notes
