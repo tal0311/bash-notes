@@ -37,7 +37,10 @@ view_all_notes() {
     local color=${1:-34}
     echo "All notes:"
     while IFS= read -r line; do
-        echo -e "\e[1;${color}m$line\e[0m"
+        date=$(echo "$line" | awk -F 'Date: ' '{print $2}' | awk -F ' | User:' '{print $1}')
+        note=$(echo "$line" | awk -F 'Note: ' '{print $2}' | awk -F ' | Labels:' '{print $1}')
+        status=$(echo "$line" | awk -F 'Status: ' '{print $2}')
+        echo -e "\e[1;${color}mDate: $date | Note: $note | Status: $status\e[0m"
     done < notes.txt
     count_all_notes
 }
